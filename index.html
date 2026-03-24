@@ -6,68 +6,113 @@
     <style>
         body {
             font-family: Arial;
-            text-align: center;
-            background-color: #d0f0ff;
+            margin: 0;
+            background: #f4f6f8;
+        }
+
+        header {
+            background: #0a7cff;
+            color: white;
+            padding: 15px;
+            font-size: 20px;
         }
 
         .container {
-            margin-top: 50px;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            margin: 15px auto;
+            width: 300px;
+            border-radius: 10px;
+            box-shadow: 0px 2px 10px rgba(0,0,0,0.1);
         }
 
         input {
-            padding: 8px;
-            margin: 5px;
+            padding: 10px;
+            width: 90%;
+            margin: 5px 0;
         }
 
         button {
-            padding: 8px 15px;
+            padding: 10px;
+            background: #0a7cff;
+            color: white;
+            border: none;
             cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .deleteBtn {
+            background: red;
+            margin-left: 10px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background: white;
+            margin: 10px auto;
+            padding: 10px;
+            width: 300px;
+            border-radius: 8px;
+            box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
         }
 
         .hidden {
             display: none;
-        }
-
-        .deleteBtn {
-            background-color: red;
-            color: white;
-            border: none;
-            margin-left: 10px;
         }
     </style>
 </head>
 
 <body>
 
-    <!-- LOGIN SECTION -->
+    <header>
+        🚀 Abhishek Zoe Business Platform
+    </header>
+
+    <!-- LOGIN -->
     <div id="loginSection" class="container">
-        <h2>Login</h2>
-        <input type="text" id="username" placeholder="Enter Username"><br>
-        <button onclick="login()">Login</button>
+        <div class="card">
+            <h2>Login</h2>
+            <input type="text" id="username" placeholder="Enter Username">
+            <br><br>
+            <button onclick="login()">Login</button>
+        </div>
     </div>
 
-    <!-- MAIN PLATFORM -->
-    <div id="mainSection" class="hidden">
+    <!-- MAIN -->
+    <div id="mainSection" class="hidden container">
 
-        <h1 style="color:green;">Abhishek Zoe Business Platform</h1>
-        <p>Connect. Negotiate. Grow.</p>
+        <div class="card">
+            <h2>Register Business</h2>
 
-        <h2>Register Your Business</h2>
+            <form onsubmit="addBusiness(); return false;">
+                <input type="text" placeholder="Business Name" id="bname">
+                <input type="text" placeholder="Owner Name" id="oname">
+                <input type="text" placeholder="Business Type" id="btype">
+                <br><br>
+                <button type="submit">Submit</button>
+            </form>
+        </div>
 
-        <form onsubmit="addBusiness(); return false;">
-            <input type="text" placeholder="Business Name" id="bname"><br>
-            <input type="text" placeholder="Owner Name" id="oname"><br>
-            <input type="text" placeholder="Business Type" id="btype"><br>
-            <button type="submit">Submit</button>
-        </form>
+        <!-- SEARCH -->
+        <div class="card">
+            <h2>Search Business</h2>
+            <input type="text" id="searchInput" placeholder="Search by name..." onkeyup="searchBusiness()">
+        </div>
 
-        <h2>Registered Businesses</h2>
+        <h2 style="text-align:center;">Businesses</h2>
         <ul id="businessList"></ul>
 
     </div>
 
     <script>
-        // LOGIN FUNCTION
         function login() {
             var user = document.getElementById("username").value;
 
@@ -82,7 +127,6 @@
             document.getElementById("mainSection").style.display = "block";
         }
 
-        // AUTO LOGIN
         window.onload = function() {
             var savedUser = localStorage.getItem("user");
 
@@ -94,13 +138,11 @@
             loadBusinesses();
         };
 
-        // LOAD BUSINESSES
         function loadBusinesses() {
             var data = JSON.parse(localStorage.getItem("businesses")) || [];
             data.forEach(displayBusiness);
         }
 
-        // ADD BUSINESS
         function addBusiness() {
             var name = document.getElementById("bname").value;
             var owner = document.getElementById("oname").value;
@@ -119,22 +161,20 @@
             document.getElementById("btype").value = "";
         }
 
-        // DISPLAY
         function displayBusiness(business) {
             var list = document.getElementById("businessList");
 
             var item = document.createElement("li");
 
             item.innerHTML =
-                "Business: " + business.name +
-                " | Owner: " + business.owner +
-                " | Type: " + business.type +
+                "<b>" + business.name + "</b><br>" +
+                "Owner: " + business.owner + "<br>" +
+                "Type: " + business.type +
                 " <button class='deleteBtn' onclick='deleteItem(this)'>Delete</button>";
 
             list.appendChild(item);
         }
 
-        // DELETE
         function deleteItem(button) {
             var text = button.parentElement.textContent;
 
@@ -147,6 +187,21 @@
             localStorage.setItem("businesses", JSON.stringify(data));
 
             button.parentElement.remove();
+        }
+
+        function searchBusiness() {
+            var input = document.getElementById("searchInput").value.toLowerCase();
+            var items = document.getElementById("businessList").getElementsByTagName("li");
+
+            for (var i = 0; i < items.length; i++) {
+                var text = items[i].textContent.toLowerCase();
+
+                if (text.includes(input)) {
+                    items[i].style.display = "";
+                } else {
+                    items[i].style.display = "none";
+                }
+            }
         }
     </script>
 
