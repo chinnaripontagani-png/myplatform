@@ -67,143 +67,195 @@
         .hidden {
             display: none;
         }
+
+        .chatBox {
+            height: 150px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background: #fff;
+        }
     </style>
 </head>
 
 <body>
 
-    <header>
-        🚀 Abhishek Zoe Business Platform
-    </header>
+<header>
+    🚀 Abhishek Zoe Business Platform
+</header>
 
-    <!-- LOGIN -->
-    <div id="loginSection" class="container">
-        <div class="card">
-            <h2>Login</h2>
-            <input type="text" id="username" placeholder="Enter Username">
+<!-- LOGIN -->
+<div id="loginSection" class="container">
+    <div class="card">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Enter Username">
+        <br><br>
+        <button onclick="login()">Login</button>
+    </div>
+</div>
+
+<!-- MAIN -->
+<div id="mainSection" class="hidden container">
+
+    <div class="card">
+        <h2>Register Business</h2>
+
+        <form onsubmit="addBusiness(); return false;">
+            <input type="text" placeholder="Business Name" id="bname">
+            <input type="text" placeholder="Owner Name" id="oname">
+            <input type="text" placeholder="Business Type" id="btype">
             <br><br>
-            <button onclick="login()">Login</button>
-        </div>
+            <button type="submit">Submit</button>
+        </form>
     </div>
 
-    <!-- MAIN -->
-    <div id="mainSection" class="hidden container">
-
-        <div class="card">
-            <h2>Register Business</h2>
-
-            <form onsubmit="addBusiness(); return false;">
-                <input type="text" placeholder="Business Name" id="bname">
-                <input type="text" placeholder="Owner Name" id="oname">
-                <input type="text" placeholder="Business Type" id="btype">
-                <br><br>
-                <button type="submit">Submit</button>
-            </form>
-        </div>
-
-        <!-- SEARCH -->
-        <div class="card">
-            <h2>Search Business</h2>
-            <input type="text" id="searchInput" placeholder="Search by name..." onkeyup="searchBusiness()">
-        </div>
-
-        <h2 style="text-align:center;">Businesses</h2>
-        <ul id="businessList"></ul>
-
+    <!-- SEARCH -->
+    <div class="card">
+        <h2>Search Business</h2>
+        <input type="text" id="searchInput" placeholder="Search..." onkeyup="searchBusiness()">
     </div>
 
-    <script>
-        function login() {
-            var user = document.getElementById("username").value;
+    <!-- CHAT -->
+    <div class="card">
+        <h2>Business Chat 💬</h2>
 
-            if(user === "") {
-                alert("Enter username!");
-                return;
-            }
+        <div id="chatMessages" class="chatBox"></div>
 
-            localStorage.setItem("user", user);
+        <input type="text" id="chatInput" placeholder="Type message...">
+        <br><br>
+        <button onclick="sendMessage()">Send</button>
+    </div>
 
+    <h2 style="text-align:center;">Businesses</h2>
+    <ul id="businessList"></ul>
+
+</div>
+
+<script>
+    function login() {
+        var user = document.getElementById("username").value;
+
+        if(user === "") {
+            alert("Enter username!");
+            return;
+        }
+
+        localStorage.setItem("user", user);
+
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("mainSection").style.display = "block";
+    }
+
+    window.onload = function() {
+        var savedUser = localStorage.getItem("user");
+
+        if(savedUser) {
             document.getElementById("loginSection").style.display = "none";
             document.getElementById("mainSection").style.display = "block";
         }
 
-        window.onload = function() {
-            var savedUser = localStorage.getItem("user");
+        loadBusinesses();
+        loadMessages();
+    };
 
-            if(savedUser) {
-                document.getElementById("loginSection").style.display = "none";
-                document.getElementById("mainSection").style.display = "block";
-            }
+    function loadBusinesses() {
+        var data = JSON.parse(localStorage.getItem("businesses")) || [];
+        data.forEach(displayBusiness);
+    }
 
-            loadBusinesses();
-        };
+    function addBusiness() {
+        var name = document.getElementById("bname").value;
+        var owner = document.getElementById("oname").value;
+        var type = document.getElementById("btype").value;
 
-        function loadBusinesses() {
-            var data = JSON.parse(localStorage.getItem("businesses")) || [];
-            data.forEach(displayBusiness);
-        }
+        var business = { name, owner, type };
 
-        function addBusiness() {
-            var name = document.getElementById("bname").value;
-            var owner = document.getElementById("oname").value;
-            var type = document.getElementById("btype").value;
+        var data = JSON.parse(localStorage.getItem("businesses")) || [];
+        data.push(business);
+        localStorage.setItem("businesses", JSON.stringify(data));
 
-            var business = { name, owner, type };
+        displayBusiness(business);
 
-            var data = JSON.parse(localStorage.getItem("businesses")) || [];
-            data.push(business);
-            localStorage.setItem("businesses", JSON.stringify(data));
+        document.getElementById("bname").value = "";
+        document.getElementById("oname").value = "";
+        document.getElementById("btype").value = "";
+    }
 
-            displayBusiness(business);
+    function displayBusiness(business) {
+        var list = document.getElementById("businessList");
 
-            document.getElementById("bname").value = "";
-            document.getElementById("oname").value = "";
-            document.getElementById("btype").value = "";
-        }
+        var item = document.createElement("li");
 
-        function displayBusiness(business) {
-            var list = document.getElementById("businessList");
+        item.innerHTML =
+            "<b>" + business.name + "</b><br>" +
+            "Owner: " + business.owner + "<br>" +
+            "Type: " + business.type +
+            " <button class='deleteBtn' onclick='deleteItem(this)'>Delete</button>";
 
-            var item = document.createElement("li");
+        list.appendChild(item);
+    }
 
-            item.innerHTML =
-                "<b>" + business.name + "</b><br>" +
-                "Owner: " + business.owner + "<br>" +
-                "Type: " + business.type +
-                " <button class='deleteBtn' onclick='deleteItem(this)'>Delete</button>";
+    function deleteItem(button) {
+        var text = button.parentElement.textContent;
 
-            list.appendChild(item);
-        }
+        var data = JSON.parse(localStorage.getItem("businesses")) || [];
 
-        function deleteItem(button) {
-            var text = button.parentElement.textContent;
+        data = data.filter(function(business) {
+            return !text.includes(business.name);
+        });
 
-            var data = JSON.parse(localStorage.getItem("businesses")) || [];
+        localStorage.setItem("businesses", JSON.stringify(data));
 
-            data = data.filter(function(business) {
-                return !text.includes(business.name);
-            });
+        button.parentElement.remove();
+    }
 
-            localStorage.setItem("businesses", JSON.stringify(data));
+    function searchBusiness() {
+        var input = document.getElementById("searchInput").value.toLowerCase();
+        var items = document.getElementById("businessList").getElementsByTagName("li");
 
-            button.parentElement.remove();
-        }
+        for (var i = 0; i < items.length; i++) {
+            var text = items[i].textContent.toLowerCase();
 
-        function searchBusiness() {
-            var input = document.getElementById("searchInput").value.toLowerCase();
-            var items = document.getElementById("businessList").getElementsByTagName("li");
-
-            for (var i = 0; i < items.length; i++) {
-                var text = items[i].textContent.toLowerCase();
-
-                if (text.includes(input)) {
-                    items[i].style.display = "";
-                } else {
-                    items[i].style.display = "none";
-                }
+            if (text.includes(input)) {
+                items[i].style.display = "";
+            } else {
+                items[i].style.display = "none";
             }
         }
-    </script>
+    }
+
+    // CHAT SYSTEM
+    function sendMessage() {
+        var input = document.getElementById("chatInput").value;
+        var user = localStorage.getItem("user");
+
+        if(input === "") return;
+
+        var message = user + ": " + input;
+
+        var data = JSON.parse(localStorage.getItem("messages")) || [];
+        data.push(message);
+        localStorage.setItem("messages", JSON.stringify(data));
+
+        displayMessage(message);
+
+        document.getElementById("chatInput").value = "";
+    }
+
+    function loadMessages() {
+        var data = JSON.parse(localStorage.getItem("messages")) || [];
+        data.forEach(displayMessage);
+    }
+
+    function displayMessage(msg) {
+        var box = document.getElementById("chatMessages");
+
+        var p = document.createElement("p");
+        p.textContent = msg;
+
+        box.appendChild(p);
+    }
+</script>
 
 </body>
 </html>
