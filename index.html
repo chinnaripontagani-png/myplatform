@@ -1,23 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Abhishek Zoe Global Platform</title>
-
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
+    <title>Global Chat</title>
 
     <style>
         body {
             font-family: Arial;
-            background: #f4f6f8;
             text-align: center;
         }
 
         input {
             padding: 10px;
             margin: 5px;
-            width: 250px;
         }
 
         button {
@@ -26,75 +20,61 @@
             color: white;
             border: none;
         }
-
-        ul {
-            list-style: none;
-        }
-
-        li {
-            background: white;
-            margin: 10px auto;
-            padding: 10px;
-            width: 300px;
-            border-radius: 8px;
-        }
     </style>
 </head>
 
 <body>
 
-<h2>🌍 Global Business Chat</h2>
+<h2>🌍 Global Chat</h2>
 
-<input type="text" id="username" placeholder="Enter your name">
-<br>
-
-<input type="text" id="message" placeholder="Type message">
+<input id="username" placeholder="Enter name"><br>
+<input id="message" placeholder="Type message">
 <button onclick="sendMessage()">Send</button>
 
 <ul id="messages"></ul>
 
-<script>
-    // 🔥 Your Firebase Config
-    const firebaseConfig = {
-        apiKey: "AIzaSyBjijQvDpWET8ijG1CJ2YXlJxq50Ds6RBY",
-        authDomain: "myplatform-30491.firebaseapp.com",
-        projectId: "myplatform-30491",
-        storageBucket: "myplatform-30491.appspot.com",
-        messagingSenderId: "103462843726",
-        appId: "1:103462843726:web:d3611bdb15274010e67a1f",
-        databaseURL: "https://myplatform-30491-default-rtdb.firebaseio.com"
-    };
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+const firebaseConfig = {
+  apiKey: "AIzaSyBjijQvDpWET8ijG1CJ2YXlJxq50Ds6RBY",
+  authDomain: "myplatform-30491.firebaseapp.com",
+  projectId: "myplatform-30491",
+  storageBucket: "myplatform-30491.appspot.com",
+  messagingSenderId: "103462843726",
+  appId: "1:103462843726:web:d3611bdb15274010e67a1f",
+  databaseURL: "https://myplatform-30491-default-rtdb.firebaseio.com"
+};
 
-    function sendMessage() {
-        var user = document.getElementById("username").value;
-        var msg = document.getElementById("message").value;
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-        if(user === "" || msg === "") {
-            alert("Enter name and message");
-            return;
-        }
+window.sendMessage = function() {
+    const user = document.getElementById("username").value;
+    const msg = document.getElementById("message").value;
 
-        db.ref("messages").push({
-            user: user,
-            text: msg
-        });
-
-        document.getElementById("message").value = "";
+    if(user === "" || msg === "") {
+        alert("Enter name and message");
+        return;
     }
 
-    // Listen for new messages
-    db.ref("messages").on("child_added", function(snapshot) {
-        var data = snapshot.val();
-
-        var li = document.createElement("li");
-        li.textContent = data.user + ": " + data.text;
-
-        document.getElementById("messages").appendChild(li);
+    push(ref(db, "messages"), {
+        user: user,
+        text: msg
     });
+
+    document.getElementById("message").value = "";
+};
+
+onChildAdded(ref(db, "messages"), (snapshot) => {
+    const data = snapshot.val();
+
+    const li = document.createElement("li");
+    li.textContent = data.user + ": " + data.text;
+
+    document.getElementById("messages").appendChild(li);
+});
 </script>
 
 </body>
