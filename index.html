@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Abhishek Zoe Platform</title>
+    <title>Zoe Platform</title>
 
     <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -20,25 +20,49 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // LOGIN
     window.login = function() {
         const user = username.value;
         if(!user) return alert("Enter username");
-
         localStorage.setItem("user", user);
-        loginSection.style.display = "none";
+        loginSection.style.display="none";
         mainSection.classList.remove("hidden");
     };
 
     window.onload = function() {
         if(localStorage.getItem("user")){
-            loginSection.style.display = "none";
+            loginSection.style.display="none";
             mainSection.classList.remove("hidden");
         }
     };
 
-    // ADD BUSINESS + AI
-    window.addBusiness = function() {
+    // SMART AI FUNCTION
+    function getSuggestion(type){
+        type = type.toLowerCase();
+
+        if(type.includes("tech") || type.includes("software")){
+            return "💡 Connect with investors, startups, and SaaS companies";
+        }
+        else if(type.includes("food") || type.includes("restaurant")){
+            return "💡 Partner with delivery apps, suppliers, and cloud kitchens";
+        }
+        else if(type.includes("shop") || type.includes("retail")){
+            return "💡 Work with wholesalers, digital marketers, and logistics";
+        }
+        else if(type.includes("real estate") || type.includes("construction")){
+            return "💡 Connect with builders, architects, and investors";
+        }
+        else if(type.includes("education") || type.includes("academy")){
+            return "💡 Partner with edtech platforms and training institutes";
+        }
+        else if(type.includes("finance") || type.includes("bank")){
+            return "💡 Collaborate with fintech companies and investors";
+        }
+        else{
+            return "💡 Try connecting with complementary businesses in your field";
+        }
+    }
+
+    window.addBusiness = function(){
         const name = bname.value;
         const owner = oname.value;
         const type = btype.value;
@@ -48,169 +72,69 @@
             return;
         }
 
-        push(ref(db,"businesses"), { name, owner, type });
+        push(ref(db,"businesses"), {name,owner,type});
 
-        // 🤖 AI Suggestions
-        let suggestion = "";
+        aiBox.innerText = getSuggestion(type);
 
-        if(type.toLowerCase().includes("tech")){
-            suggestion = "💡 Connect with Investors or Software Companies";
-        }
-        else if(type.toLowerCase().includes("food")){
-            suggestion = "💡 Collaborate with Suppliers or Delivery Apps";
-        }
-        else if(type.toLowerCase().includes("shop")){
-            suggestion = "💡 Partner with Wholesalers or Marketing Agencies";
-        }
-        else{
-            suggestion = "💡 Explore partnerships with related industries";
-        }
-
-        aiBox.innerText = suggestion;
-
-        bname.value = "";
-        oname.value = "";
-        btype.value = "";
+        bname.value="";
+        oname.value="";
+        btype.value="";
     };
 
-    // DISPLAY BUSINESSES
     onChildAdded(ref(db,"businesses"), snap=>{
-        const d = snap.val();
-        const div = document.createElement("div");
-        div.className = "businessCard";
-        div.innerHTML = `
-            <h4>${d.name}</h4>
-            <p>👤 ${d.owner}</p>
-            <p>🏢 ${d.type}</p>
-        `;
+        const d=snap.val();
+        const div=document.createElement("div");
+        div.className="businessCard";
+        div.innerHTML=`<h4>${d.name}</h4><p>${d.owner}</p><p>${d.type}</p>`;
         businessList.appendChild(div);
     });
 
-    // CHAT
-    window.sendMessage = function(){
-        const msg = message.value;
-        const user = localStorage.getItem("user");
-
-        if(!msg) return;
-
-        push(ref(db,"messages"), {
-            user: user,
-            text: msg
+    window.sendMessage=function(){
+        push(ref(db,"messages"),{
+            user:localStorage.getItem("user"),
+            text:message.value
         });
-
         message.value="";
     };
 
     onChildAdded(ref(db,"messages"), snap=>{
-        const d = snap.val();
-        const msg = document.createElement("div");
-        msg.className="msg";
-        msg.innerHTML = `<b>${d.user}</b>: ${d.text}`;
-        chat.appendChild(msg);
-        chat.scrollTop = chat.scrollHeight;
+        const d=snap.val();
+        const m=document.createElement("div");
+        m.className="msg";
+        m.innerHTML=`<b>${d.user}</b>: ${d.text}`;
+        chat.appendChild(m);
+        chat.scrollTop=chat.scrollHeight;
     });
 
-    // SEARCH
-    window.searchBusiness = function(){
-        const val = search.value.toLowerCase();
-        const cards = document.getElementsByClassName("businessCard");
+    window.searchBusiness=function(){
+        const val=search.value.toLowerCase();
+        const cards=document.getElementsByClassName("businessCard");
 
         for(let c of cards){
-            c.style.display = c.innerText.toLowerCase().includes(val) ? "block" : "none";
+            c.style.display=c.innerText.toLowerCase().includes(val)?"block":"none";
         }
     };
     </script>
 
     <style>
-        body {
-            margin:0;
-            font-family: 'Segoe UI', sans-serif;
-            background:#eef2f7;
-        }
-
-        header {
-            background:white;
-            padding:15px 30px;
-            display:flex;
-            justify-content:space-between;
-            box-shadow:0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        header h2 {
-            margin:0;
-            color:#0a7cff;
-        }
-
-        .container {
-            padding:20px;
-            max-width:900px;
-            margin:auto;
-        }
-
-        .card {
-            background:white;
-            padding:20px;
-            border-radius:12px;
-            margin-bottom:20px;
-            box-shadow:0 4px 15px rgba(0,0,0,0.08);
-        }
-
-        input {
-            width:100%;
-            padding:12px;
-            margin:5px 0;
-            border-radius:8px;
-            border:1px solid #ddd;
-        }
-
-        button {
-            padding:12px;
-            background:#0a7cff;
-            color:white;
-            border:none;
-            border-radius:8px;
-            cursor:pointer;
-            width:100%;
-        }
-
-        #businessList {
-            display:grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
-            gap:15px;
-        }
-
-        .businessCard {
-            background:white;
-            padding:15px;
-            border-radius:10px;
-            box-shadow:0 2px 10px rgba(0,0,0,0.08);
-        }
-
-        #chat {
-            height:200px;
-            overflow-y:auto;
-            background:#f9fafc;
-            padding:10px;
-            border-radius:10px;
-        }
-
-        .msg {
-            background:white;
-            margin:5px 0;
-            padding:8px;
-            border-radius:6px;
-        }
-
-        .hidden {
-            display:none;
-        }
+        body {margin:0;font-family:Segoe UI;background:#eef2f7;}
+        header {background:white;padding:15px;display:flex;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,0.1);}
+        .container {padding:20px;max-width:900px;margin:auto;}
+        .card {background:white;padding:20px;border-radius:12px;margin-bottom:20px;}
+        input {width:100%;padding:10px;margin:5px 0;}
+        button {padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px;}
+        #businessList {display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;}
+        .businessCard {background:white;padding:10px;border-radius:10px;}
+        #chat {height:200px;overflow-y:auto;background:#fff;padding:10px;}
+        .msg {background:#eee;margin:5px;padding:5px;border-radius:5px;}
+        .hidden {display:none;}
     </style>
 </head>
 
 <body>
 
 <header>
-    <h2>🚀 Zoe Platform</h2>
+    <h2>Zoe Platform</h2>
     <span>Business Network</span>
 </header>
 
@@ -218,7 +142,7 @@
     <div class="card">
         <h3>Login</h3>
         <input id="username" placeholder="Enter username">
-        <button onclick="login()">Enter Platform</button>
+        <button onclick="login()">Enter</button>
     </div>
 </div>
 
@@ -229,12 +153,12 @@
         <input id="bname" placeholder="Business Name">
         <input id="oname" placeholder="Owner Name">
         <input id="btype" placeholder="Business Type">
-        <button onclick="addBusiness()">Add Business</button>
+        <button onclick="addBusiness()">Add</button>
     </div>
 
     <div class="card">
         <h3>Search</h3>
-        <input id="search" onkeyup="searchBusiness()" placeholder="Search businesses...">
+        <input id="search" onkeyup="searchBusiness()" placeholder="Search...">
     </div>
 
     <div id="businessList"></div>
@@ -245,7 +169,7 @@
     </div>
 
     <div class="card">
-        <h3>Global Chat 💬</h3>
+        <h3>Global Chat</h3>
         <div id="chat"></div>
         <input id="message" placeholder="Type message">
         <button onclick="sendMessage()">Send</button>
