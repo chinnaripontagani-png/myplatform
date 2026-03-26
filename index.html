@@ -8,7 +8,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSy...",
+  apiKey: "AIzaSyBjijQvDpWET8ijG1CJ2YXlJxq50Ds6RBY",
   authDomain: "myplatform-30491.firebaseapp.com",
   projectId: "myplatform-30491",
   databaseURL: "https://myplatform-30491-default-rtdb.firebaseio.com"
@@ -17,14 +17,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+let allBusinesses = [];
 let selectedUser = "";
 let currentUser = "";
 
 // LOGIN
 window.login = function(){
     currentUser = username.value;
-    localStorage.setItem("user", currentUser);
+    if(!currentUser) return alert("Enter username");
 
+    localStorage.setItem("user", currentUser);
     loginSection.style.display="none";
     mainSection.classList.remove("hidden");
 };
@@ -37,25 +39,71 @@ window.onload = function(){
     }
 };
 
-// SELECT USER
-window.selectUser = function(name){
-    selectedUser = name;
-    privateChatBox.innerHTML = "Chat with " + name;
+// ADD BUSINESS
+window.addBusiness = function(){
+    const name=bname.value;
+    const owner=oname.value;
+    const type=btype.value;
+
+    if(!name||!owner||!type){
+        alert("Fill all fields");
+        return;
+    }
+
+    const newBiz={name,owner,type};
+    push(ref(db,"businesses"), newBiz);
+
+    showMatches(newBiz);
+
+    bname.value="";
+    oname.value="";
+    btype.value="";
 };
 
+// DISPLAY BUSINESSES
+onChildAdded(ref(db,"businesses"), snap=>{
+    const d=snap.val();
+    allBusinesses.push(d);
+
+    const div=document.createElement("div");
+    div.className="businessCard";
+    div.innerHTML=`<h4>${d.name}</h4><p>${d.owner}</p><p>${d.type}</p>`;
+    businessList.appendChild(div);
+});
+
+// MATCHES
+function showMatches(newBiz){
+    matchBox.innerHTML="";
+
+    allBusinesses.forEach(b=>{
+        if(b.type!==newBiz.type){
+            const match=document.createElement("div");
+            match.className="matchCard";
+            match.innerHTML=`<b>${b.name}</b><br>${b.owner}<br>${b.type}`;
+
+            match.onclick=function(){
+                selectedUser=b.owner;
+                privateChatBox.innerHTML="Chat with "+selectedUser;
+            };
+
+            matchBox.appendChild(match);
+        }
+    });
+}
+
 // SEND PRIVATE
-window.sendPrivate = function(){
-    const msg = privateMsg.value;
+window.sendPrivate=function(){
+    const msg=privateMsg.value;
 
     if(!selectedUser){
-        alert("Select user first");
+        alert("Select a match first");
         return;
     }
 
     push(ref(db,"privateChats"),{
-        from: currentUser,
-        to: selectedUser,
-        text: msg
+        from:currentUser,
+        to:selectedUser,
+        text:msg
     });
 
     privateMsg.value="";
@@ -63,46 +111,108 @@ window.sendPrivate = function(){
 
 // RECEIVE PRIVATE (FIXED)
 onChildAdded(ref(db,"privateChats"), snap=>{
-    const d = snap.val();
+    const d=snap.val();
 
     if(
-        (d.from === currentUser && d.to === selectedUser) ||
-        (d.from === selectedUser && d.to === currentUser)
+        (d.from===currentUser && d.to===selectedUser) ||
+        (d.from===selectedUser && d.to===currentUser)
     ){
-        const m = document.createElement("div");
-        m.innerHTML = `<b>${d.from}</b>: ${d.text}`;
+        const m=document.createElement("div");
+        m.innerHTML=`<b>${d.from}</b>: ${d.text}`;
         privateChatBox.appendChild(m);
     }
 });
+
+// GLOBAL CHAT
+window.sendMessage=function(){
+    push(ref(db,"messages"),{
+        user:currentUser,
+        text:message.value
+    });
+    message.value="";
+};
+
+onChildAdded(ref(db,"messages"), snap=>{
+    const d=snap.val();
+    const m=document.createElement("div");
+    m.innerHTML=`<b>${d.user}</b>: ${d.text}`;
+    chat.appendChild(m);
+});
+
+// SEARCH
+window.searchBusiness=function(){
+    const val=search.value.toLowerCase();
+    const cards=document.getElementsByClassName("businessCard");
+
+    for(let c of cards){
+        c.style.display=c.innerText.toLowerCase().includes(val)?"block":"none";
+    }
+};
 </script>
 
 <style>
-body{font-family:Arial;background:#eef2f7}
-.card{background:white;padding:15px;margin:10px;border-radius:10px}
-.hidden{display:none}
+body{margin:0;font-family:Segoe UI;background:#eef2f7;}
+header{background:white;padding:15px;display:flex;justify-content:space-between;}
+.container{padding:20px;max-width:900px;margin:auto;}
+.card{background:white;padding:20px;border-radius:12px;margin-bottom:20px;}
+input{width:100%;padding:10px;margin:5px 0;}
+button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px;}
+.businessCard,.matchCard{background:white;padding:10px;border-radius:10px;margin:5px;}
+#matchBox{display:flex;flex-wrap:wrap;}
+#chat,#privateChatBox{height:150px;overflow-y:auto;background:#fff;padding:10px;}
+.hidden{display:none;}
 </style>
 </head>
 
 <body>
 
-<div id="loginSection" class="card">
-<input id="username" placeholder="Enter name">
-<button onclick="login()">Login</button>
+<header>
+<h2>Zoe Platform</h2>
+<span>Business Network</span>
+</header>
+
+<div id="loginSection" class="container">
+<div class="card">
+<h3>Login</h3>
+<input id="username" placeholder="Enter username">
+<button onclick="login()">Enter</button>
+</div>
 </div>
 
-<div id="mainSection" class="hidden">
+<div id="mainSection" class="container hidden">
 
 <div class="card">
-<h3>Select User</h3>
-<button onclick="selectUser('User1')">User1</button>
-<button onclick="selectUser('User2')">User2</button>
+<h3>Add Business</h3>
+<input id="bname" placeholder="Business Name">
+<input id="oname" placeholder="Owner Name">
+<input id="btype" placeholder="Business Type">
+<button onclick="addBusiness()">Add</button>
 </div>
 
 <div class="card">
-<h3>Private Chat</h3>
+<h3>Search</h3>
+<input id="search" onkeyup="searchBusiness()" placeholder="Search...">
+</div>
+
+<div id="businessList"></div>
+
+<div class="card">
+<h3>🤝 Matches (Click to chat)</h3>
+<div id="matchBox"></div>
+</div>
+
+<div class="card">
+<h3>🔒 Private Chat</h3>
 <div id="privateChatBox"></div>
-<input id="privateMsg">
+<input id="privateMsg" placeholder="Type private message">
 <button onclick="sendPrivate()">Send</button>
+</div>
+
+<div class="card">
+<h3>🌍 Global Chat</h3>
+<div id="chat"></div>
+<input id="message" placeholder="Type message">
+<button onclick="sendMessage()">Send</button>
 </div>
 
 </div>
