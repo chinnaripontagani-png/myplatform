@@ -22,11 +22,7 @@
 
     window.login = function() {
         const user = document.getElementById("username").value;
-
-        if(user === "") {
-            alert("Enter username");
-            return;
-        }
+        if(user === "") return alert("Enter username");
 
         localStorage.setItem("user", user);
         document.getElementById("login").style.display = "none";
@@ -41,119 +37,143 @@
         }
     };
 
-    // BUSINESS
     window.addBusiness = function() {
-        const name = document.getElementById("bname").value;
-        const owner = document.getElementById("oname").value;
-        const type = document.getElementById("btype").value;
+        const name = bname.value;
+        const owner = oname.value;
+        const type = btype.value;
 
-        push(ref(db, "businesses"), {
-            name: name,
-            owner: owner,
-            type: type
-        });
+        push(ref(db, "businesses"), { name, owner, type });
+
+        bname.value = "";
+        oname.value = "";
+        btype.value = "";
     };
 
-    onChildAdded(ref(db, "businesses"), (snapshot) => {
-        const data = snapshot.val();
-
+    onChildAdded(ref(db, "businesses"), snap => {
+        const d = snap.val();
         const li = document.createElement("li");
-        li.textContent = data.name + " | " + data.owner + " | " + data.type;
-
-        document.getElementById("businessList").appendChild(li);
+        li.innerHTML = `<b>${d.name}</b><br>Owner: ${d.owner}<br>Type: ${d.type}`;
+        businessList.appendChild(li);
     });
 
-    // CHAT
     window.sendMessage = function() {
         const user = localStorage.getItem("user");
-        const msg = document.getElementById("message").value;
+        const msg = message.value;
 
-        push(ref(db, "messages"), {
-            user: user,
-            text: msg
-        });
-
-        document.getElementById("message").value = "";
+        push(ref(db, "messages"), { user, text: msg });
+        message.value = "";
     };
 
-    onChildAdded(ref(db, "messages"), (snapshot) => {
-        const data = snapshot.val();
-
+    onChildAdded(ref(db, "messages"), snap => {
+        const d = snap.val();
         const li = document.createElement("li");
-        li.textContent = data.user + ": " + data.text;
-
-        document.getElementById("chat").appendChild(li);
+        li.textContent = d.user + ": " + d.text;
+        chat.appendChild(li);
     });
 
-    // SEARCH
     window.searchBusiness = function() {
-        const input = document.getElementById("search").value.toLowerCase();
-        const items = document.getElementById("businessList").getElementsByTagName("li");
+        const val = search.value.toLowerCase();
+        const items = businessList.getElementsByTagName("li");
 
-        for(let i = 0; i < items.length; i++) {
-            const text = items[i].textContent.toLowerCase();
-            items[i].style.display = text.includes(input) ? "" : "none";
+        for(let i=0;i<items.length;i++){
+            items[i].style.display =
+                items[i].textContent.toLowerCase().includes(val) ? "" : "none";
         }
     };
     </script>
 
     <style>
         body {
+            margin:0;
             font-family: Arial;
-            background: #f4f6f8;
-            text-align: center;
+            background:#f4f6f8;
+        }
+
+        header {
+            background:#0a7cff;
+            color:white;
+            padding:15px;
+            font-size:20px;
+            text-align:center;
+        }
+
+        .container {
+            padding:20px;
+        }
+
+        .card {
+            background:white;
+            padding:15px;
+            margin:15px auto;
+            width:300px;
+            border-radius:10px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.1);
         }
 
         input {
-            padding: 10px;
-            margin: 5px;
+            width:90%;
+            padding:10px;
+            margin:5px;
         }
 
         button {
-            padding: 10px;
-            background: blue;
-            color: white;
-            border: none;
+            padding:10px;
+            background:#0a7cff;
+            color:white;
+            border:none;
+            border-radius:5px;
+        }
+
+        ul {
+            list-style:none;
+            padding:0;
         }
 
         li {
-            background: white;
-            margin: 10px auto;
-            padding: 10px;
-            width: 300px;
-            border-radius: 8px;
+            background:white;
+            margin:10px auto;
+            padding:10px;
+            width:300px;
+            border-radius:8px;
         }
     </style>
 </head>
 
 <body>
 
-<h2>🚀 Abhishek Zoe Platform</h2>
+<header>🚀 Abhishek Zoe Business Platform</header>
 
-<!-- LOGIN -->
-<div id="login">
-    <input id="username" placeholder="Enter username">
-    <button onclick="login()">Login</button>
+<div id="login" class="container">
+    <div class="card">
+        <h2>Login</h2>
+        <input id="username" placeholder="Enter username">
+        <button onclick="login()">Login</button>
+    </div>
 </div>
 
-<!-- MAIN -->
-<div id="main" style="display:none;">
+<div id="main" style="display:none;" class="container">
 
-    <h3>Add Business</h3>
-    <input id="bname" placeholder="Business Name">
-    <input id="oname" placeholder="Owner Name">
-    <input id="btype" placeholder="Type">
-    <button onclick="addBusiness()">Add</button>
+    <div class="card">
+        <h3>Add Business</h3>
+        <input id="bname" placeholder="Business Name">
+        <input id="oname" placeholder="Owner Name">
+        <input id="btype" placeholder="Type">
+        <button onclick="addBusiness()">Add</button>
+    </div>
 
-    <h3>Search</h3>
-    <input id="search" onkeyup="searchBusiness()" placeholder="Search business">
+    <div class="card">
+        <h3>Search</h3>
+        <input id="search" onkeyup="searchBusiness()" placeholder="Search business">
+    </div>
 
-    <h3>Businesses</h3>
+    <h3 style="text-align:center;">Businesses</h3>
     <ul id="businessList"></ul>
 
-    <h3>Global Chat</h3>
-    <input id="message" placeholder="Type message">
-    <button onclick="sendMessage()">Send</button>
+    <div class="card">
+        <h3>Global Chat 💬</h3>
+        <input id="message" placeholder="Type message">
+        <button onclick="sendMessage()">Send</button>
+    </div>
 
     <ul id="chat"></ul>
 
