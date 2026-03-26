@@ -1,11 +1,106 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Global Chat</title>
+    <title>Abhishek Zoe Platform</title>
+
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjijQvDpWET8ijG1CJ2YXlJxq50Ds6RBY",
+      authDomain: "myplatform-30491.firebaseapp.com",
+      projectId: "myplatform-30491",
+      storageBucket: "myplatform-30491.appspot.com",
+      messagingSenderId: "103462843726",
+      appId: "1:103462843726:web:d3611bdb15274010e67a1f",
+      databaseURL: "https://myplatform-30491-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    window.login = function() {
+        const user = document.getElementById("username").value;
+
+        if(user === "") {
+            alert("Enter username");
+            return;
+        }
+
+        localStorage.setItem("user", user);
+        document.getElementById("login").style.display = "none";
+        document.getElementById("main").style.display = "block";
+    };
+
+    window.onload = function() {
+        const user = localStorage.getItem("user");
+        if(user) {
+            document.getElementById("login").style.display = "none";
+            document.getElementById("main").style.display = "block";
+        }
+    };
+
+    // BUSINESS
+    window.addBusiness = function() {
+        const name = document.getElementById("bname").value;
+        const owner = document.getElementById("oname").value;
+        const type = document.getElementById("btype").value;
+
+        push(ref(db, "businesses"), {
+            name: name,
+            owner: owner,
+            type: type
+        });
+    };
+
+    onChildAdded(ref(db, "businesses"), (snapshot) => {
+        const data = snapshot.val();
+
+        const li = document.createElement("li");
+        li.textContent = data.name + " | " + data.owner + " | " + data.type;
+
+        document.getElementById("businessList").appendChild(li);
+    });
+
+    // CHAT
+    window.sendMessage = function() {
+        const user = localStorage.getItem("user");
+        const msg = document.getElementById("message").value;
+
+        push(ref(db, "messages"), {
+            user: user,
+            text: msg
+        });
+
+        document.getElementById("message").value = "";
+    };
+
+    onChildAdded(ref(db, "messages"), (snapshot) => {
+        const data = snapshot.val();
+
+        const li = document.createElement("li");
+        li.textContent = data.user + ": " + data.text;
+
+        document.getElementById("chat").appendChild(li);
+    });
+
+    // SEARCH
+    window.searchBusiness = function() {
+        const input = document.getElementById("search").value.toLowerCase();
+        const items = document.getElementById("businessList").getElementsByTagName("li");
+
+        for(let i = 0; i < items.length; i++) {
+            const text = items[i].textContent.toLowerCase();
+            items[i].style.display = text.includes(input) ? "" : "none";
+        }
+    };
+    </script>
 
     <style>
         body {
             font-family: Arial;
+            background: #f4f6f8;
             text-align: center;
         }
 
@@ -20,62 +115,49 @@
             color: white;
             border: none;
         }
+
+        li {
+            background: white;
+            margin: 10px auto;
+            padding: 10px;
+            width: 300px;
+            border-radius: 8px;
+        }
     </style>
 </head>
 
 <body>
 
-<h2>🌍 Global Chat</h2>
+<h2>🚀 Abhishek Zoe Platform</h2>
 
-<input id="username" placeholder="Enter name"><br>
-<input id="message" placeholder="Type message">
-<button onclick="sendMessage()">Send</button>
+<!-- LOGIN -->
+<div id="login">
+    <input id="username" placeholder="Enter username">
+    <button onclick="login()">Login</button>
+</div>
 
-<ul id="messages"></ul>
+<!-- MAIN -->
+<div id="main" style="display:none;">
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    <h3>Add Business</h3>
+    <input id="bname" placeholder="Business Name">
+    <input id="oname" placeholder="Owner Name">
+    <input id="btype" placeholder="Type">
+    <button onclick="addBusiness()">Add</button>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBjijQvDpWET8ijG1CJ2YXlJxq50Ds6RBY",
-  authDomain: "myplatform-30491.firebaseapp.com",
-  projectId: "myplatform-30491",
-  storageBucket: "myplatform-30491.appspot.com",
-  messagingSenderId: "103462843726",
-  appId: "1:103462843726:web:d3611bdb15274010e67a1f",
-  databaseURL: "https://myplatform-30491-default-rtdb.firebaseio.com"
-};
+    <h3>Search</h3>
+    <input id="search" onkeyup="searchBusiness()" placeholder="Search business">
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+    <h3>Businesses</h3>
+    <ul id="businessList"></ul>
 
-window.sendMessage = function() {
-    const user = document.getElementById("username").value;
-    const msg = document.getElementById("message").value;
+    <h3>Global Chat</h3>
+    <input id="message" placeholder="Type message">
+    <button onclick="sendMessage()">Send</button>
 
-    if(user === "" || msg === "") {
-        alert("Enter name and message");
-        return;
-    }
+    <ul id="chat"></ul>
 
-    push(ref(db, "messages"), {
-        user: user,
-        text: msg
-    });
-
-    document.getElementById("message").value = "";
-};
-
-onChildAdded(ref(db, "messages"), (snapshot) => {
-    const data = snapshot.val();
-
-    const li = document.createElement("li");
-    li.textContent = data.user + ": " + data.text;
-
-    document.getElementById("messages").appendChild(li);
-});
-</script>
+</div>
 
 </body>
 </html>
