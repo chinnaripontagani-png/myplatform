@@ -21,63 +21,66 @@
     const db = getDatabase(app);
 
     window.login = function() {
-        const user = document.getElementById("username").value;
-        if(user === "") return alert("Enter username");
+        const user = username.value;
+        if(!user) return alert("Enter username");
 
         localStorage.setItem("user", user);
-        document.getElementById("login").style.display = "none";
-        document.getElementById("main").style.display = "block";
+        loginSection.style.display = "none";
+        mainSection.style.display = "block";
     };
 
     window.onload = function() {
-        const user = localStorage.getItem("user");
-        if(user) {
-            document.getElementById("login").style.display = "none";
-            document.getElementById("main").style.display = "block";
+        if(localStorage.getItem("user")){
+            loginSection.style.display = "none";
+            mainSection.style.display = "block";
         }
     };
 
     window.addBusiness = function() {
-        const name = bname.value;
-        const owner = oname.value;
-        const type = btype.value;
+        push(ref(db,"businesses"), {
+            name: bname.value,
+            owner: oname.value,
+            type: btype.value
+        });
 
-        push(ref(db, "businesses"), { name, owner, type });
-
-        bname.value = "";
-        oname.value = "";
-        btype.value = "";
+        bname.value = oname.value = btype.value = "";
     };
 
-    onChildAdded(ref(db, "businesses"), snap => {
+    onChildAdded(ref(db,"businesses"), snap=>{
         const d = snap.val();
-        const li = document.createElement("li");
-        li.innerHTML = `<b>${d.name}</b><br>Owner: ${d.owner}<br>Type: ${d.type}`;
-        businessList.appendChild(li);
+        const div = document.createElement("div");
+        div.className = "businessCard";
+        div.innerHTML = `
+            <h4>${d.name}</h4>
+            <p>👤 ${d.owner}</p>
+            <p>🏢 ${d.type}</p>
+        `;
+        businessList.appendChild(div);
     });
 
-    window.sendMessage = function() {
-        const user = localStorage.getItem("user");
-        const msg = message.value;
-
-        push(ref(db, "messages"), { user, text: msg });
-        message.value = "";
+    window.sendMessage = function(){
+        push(ref(db,"messages"),{
+            user: localStorage.getItem("user"),
+            text: message.value
+        });
+        message.value="";
     };
 
-    onChildAdded(ref(db, "messages"), snap => {
+    onChildAdded(ref(db,"messages"), snap=>{
         const d = snap.val();
-        const li = document.createElement("li");
-        li.textContent = d.user + ": " + d.text;
-        chat.appendChild(li);
+        const msg = document.createElement("div");
+        msg.className="msg";
+        msg.innerHTML = `<b>${d.user}</b>: ${d.text}`;
+        chat.appendChild(msg);
+        chat.scrollTop = chat.scrollHeight;
     });
 
-    window.searchBusiness = function() {
+    window.searchBusiness = function(){
         const val = search.value.toLowerCase();
-        const items = businessList.getElementsByTagName("li");
+        const cards = document.getElementsByClassName("businessCard");
 
-        for(let i=0;i<items.length;i++){
-            items[i].style.display =
-                items[i].textContent.toLowerCase().includes(val) ? "" : "none";
+        for(let c of cards){
+            c.style.display = c.innerText.toLowerCase().includes(val) ? "block" : "none";
         }
     };
     </script>
@@ -85,97 +88,127 @@
     <style>
         body {
             margin:0;
-            font-family: Arial;
-            background:#f4f6f8;
+            font-family: 'Segoe UI', sans-serif;
+            background:#eef2f7;
         }
 
         header {
-            background:#0a7cff;
-            color:white;
-            padding:15px;
-            font-size:20px;
-            text-align:center;
+            background:white;
+            padding:15px 30px;
+            display:flex;
+            justify-content:space-between;
+            box-shadow:0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header h2 {
+            margin:0;
+            color:#0a7cff;
         }
 
         .container {
             padding:20px;
+            max-width:900px;
+            margin:auto;
         }
 
         .card {
             background:white;
-            padding:15px;
-            margin:15px auto;
-            width:300px;
-            border-radius:10px;
-            box-shadow:0 2px 10px rgba(0,0,0,0.1);
+            padding:20px;
+            border-radius:12px;
+            margin-bottom:20px;
+            box-shadow:0 4px 15px rgba(0,0,0,0.08);
         }
 
         input {
-            width:90%;
-            padding:10px;
-            margin:5px;
+            width:100%;
+            padding:12px;
+            margin:5px 0;
+            border-radius:8px;
+            border:1px solid #ddd;
         }
 
         button {
-            padding:10px;
+            padding:12px;
             background:#0a7cff;
             color:white;
             border:none;
-            border-radius:5px;
-        }
-
-        ul {
-            list-style:none;
-            padding:0;
-        }
-
-        li {
-            background:white;
-            margin:10px auto;
-            padding:10px;
-            width:300px;
             border-radius:8px;
+            cursor:pointer;
+            width:100%;
+        }
+
+        #businessList {
+            display:grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
+            gap:15px;
+        }
+
+        .businessCard {
+            background:white;
+            padding:15px;
+            border-radius:10px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        #chat {
+            height:200px;
+            overflow-y:auto;
+            background:#f9fafc;
+            padding:10px;
+            border-radius:10px;
+        }
+
+        .msg {
+            background:white;
+            margin:5px 0;
+            padding:8px;
+            border-radius:6px;
+        }
+
+        .hidden {
+            display:none;
         }
     </style>
 </head>
 
 <body>
 
-<header>🚀 Abhishek Zoe Business Platform</header>
+<header>
+    <h2>🚀 Zoe Platform</h2>
+    <span>Business Network</span>
+</header>
 
-<div id="login" class="container">
+<div id="loginSection" class="container">
     <div class="card">
-        <h2>Login</h2>
+        <h3>Login</h3>
         <input id="username" placeholder="Enter username">
-        <button onclick="login()">Login</button>
+        <button onclick="login()">Enter Platform</button>
     </div>
 </div>
 
-<div id="main" style="display:none;" class="container">
+<div id="mainSection" class="container hidden">
 
     <div class="card">
         <h3>Add Business</h3>
         <input id="bname" placeholder="Business Name">
         <input id="oname" placeholder="Owner Name">
-        <input id="btype" placeholder="Type">
-        <button onclick="addBusiness()">Add</button>
+        <input id="btype" placeholder="Business Type">
+        <button onclick="addBusiness()">Add Business</button>
     </div>
 
     <div class="card">
         <h3>Search</h3>
-        <input id="search" onkeyup="searchBusiness()" placeholder="Search business">
+        <input id="search" onkeyup="searchBusiness()" placeholder="Search businesses...">
     </div>
 
-    <h3 style="text-align:center;">Businesses</h3>
-    <ul id="businessList"></ul>
+    <div id="businessList"></div>
 
     <div class="card">
         <h3>Global Chat 💬</h3>
+        <div id="chat"></div>
         <input id="message" placeholder="Type message">
         <button onclick="sendMessage()">Send</button>
     </div>
-
-    <ul id="chat"></ul>
 
 </div>
 
