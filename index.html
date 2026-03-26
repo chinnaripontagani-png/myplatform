@@ -20,32 +20,60 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    // LOGIN
     window.login = function() {
         const user = username.value;
         if(!user) return alert("Enter username");
 
         localStorage.setItem("user", user);
         loginSection.style.display = "none";
-        mainSection.style.display = "block";
+        mainSection.classList.remove("hidden");
     };
 
     window.onload = function() {
         if(localStorage.getItem("user")){
             loginSection.style.display = "none";
-            mainSection.style.display = "block";
+            mainSection.classList.remove("hidden");
         }
     };
 
+    // ADD BUSINESS + AI
     window.addBusiness = function() {
-        push(ref(db,"businesses"), {
-            name: bname.value,
-            owner: oname.value,
-            type: btype.value
-        });
+        const name = bname.value;
+        const owner = oname.value;
+        const type = btype.value;
 
-        bname.value = oname.value = btype.value = "";
+        if(!name || !owner || !type){
+            alert("Fill all fields");
+            return;
+        }
+
+        push(ref(db,"businesses"), { name, owner, type });
+
+        // 🤖 AI Suggestions
+        let suggestion = "";
+
+        if(type.toLowerCase().includes("tech")){
+            suggestion = "💡 Connect with Investors or Software Companies";
+        }
+        else if(type.toLowerCase().includes("food")){
+            suggestion = "💡 Collaborate with Suppliers or Delivery Apps";
+        }
+        else if(type.toLowerCase().includes("shop")){
+            suggestion = "💡 Partner with Wholesalers or Marketing Agencies";
+        }
+        else{
+            suggestion = "💡 Explore partnerships with related industries";
+        }
+
+        aiBox.innerText = suggestion;
+
+        bname.value = "";
+        oname.value = "";
+        btype.value = "";
     };
 
+    // DISPLAY BUSINESSES
     onChildAdded(ref(db,"businesses"), snap=>{
         const d = snap.val();
         const div = document.createElement("div");
@@ -58,11 +86,18 @@
         businessList.appendChild(div);
     });
 
+    // CHAT
     window.sendMessage = function(){
-        push(ref(db,"messages"),{
-            user: localStorage.getItem("user"),
-            text: message.value
+        const msg = message.value;
+        const user = localStorage.getItem("user");
+
+        if(!msg) return;
+
+        push(ref(db,"messages"), {
+            user: user,
+            text: msg
         });
+
         message.value="";
     };
 
@@ -75,6 +110,7 @@
         chat.scrollTop = chat.scrollHeight;
     });
 
+    // SEARCH
     window.searchBusiness = function(){
         const val = search.value.toLowerCase();
         const cards = document.getElementsByClassName("businessCard");
@@ -202,6 +238,11 @@
     </div>
 
     <div id="businessList"></div>
+
+    <div class="card">
+        <h3>🤖 AI Suggestions</h3>
+        <div id="aiBox">No suggestions yet</div>
+    </div>
 
     <div class="card">
         <h3>Global Chat 💬</h3>
