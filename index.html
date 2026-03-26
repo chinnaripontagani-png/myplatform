@@ -20,49 +20,27 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    let allBusinesses = [];
+
+    // LOGIN
     window.login = function() {
         const user = username.value;
         if(!user) return alert("Enter username");
+
         localStorage.setItem("user", user);
-        loginSection.style.display="none";
+        loginSection.style.display = "none";
         mainSection.classList.remove("hidden");
     };
 
     window.onload = function() {
         if(localStorage.getItem("user")){
-            loginSection.style.display="none";
+            loginSection.style.display = "none";
             mainSection.classList.remove("hidden");
         }
     };
 
-    // SMART AI FUNCTION
-    function getSuggestion(type){
-        type = type.toLowerCase();
-
-        if(type.includes("tech") || type.includes("software")){
-            return "💡 Connect with investors, startups, and SaaS companies";
-        }
-        else if(type.includes("food") || type.includes("restaurant")){
-            return "💡 Partner with delivery apps, suppliers, and cloud kitchens";
-        }
-        else if(type.includes("shop") || type.includes("retail")){
-            return "💡 Work with wholesalers, digital marketers, and logistics";
-        }
-        else if(type.includes("real estate") || type.includes("construction")){
-            return "💡 Connect with builders, architects, and investors";
-        }
-        else if(type.includes("education") || type.includes("academy")){
-            return "💡 Partner with edtech platforms and training institutes";
-        }
-        else if(type.includes("finance") || type.includes("bank")){
-            return "💡 Collaborate with fintech companies and investors";
-        }
-        else{
-            return "💡 Try connecting with complementary businesses in your field";
-        }
-    }
-
-    window.addBusiness = function(){
+    // ADD BUSINESS + MATCHING
+    window.addBusiness = function() {
         const name = bname.value;
         const owner = oname.value;
         const type = btype.value;
@@ -72,46 +50,78 @@
             return;
         }
 
-        push(ref(db,"businesses"), {name,owner,type});
+        const newBiz = {name, owner, type};
 
-        aiBox.innerText = getSuggestion(type);
+        push(ref(db,"businesses"), newBiz);
 
-        bname.value="";
-        oname.value="";
-        btype.value="";
+        showMatches(newBiz);
+
+        bname.value = "";
+        oname.value = "";
+        btype.value = "";
     };
 
+    // STORE ALL BUSINESSES
     onChildAdded(ref(db,"businesses"), snap=>{
-        const d=snap.val();
-        const div=document.createElement("div");
-        div.className="businessCard";
-        div.innerHTML=`<h4>${d.name}</h4><p>${d.owner}</p><p>${d.type}</p>`;
+        const d = snap.val();
+        allBusinesses.push(d);
+
+        const div = document.createElement("div");
+        div.className = "businessCard";
+        div.innerHTML = `
+            <h4>${d.name}</h4>
+            <p>👤 ${d.owner}</p>
+            <p>🏢 ${d.type}</p>
+        `;
         businessList.appendChild(div);
     });
 
-    window.sendMessage=function(){
+    // MATCHING LOGIC
+    function showMatches(newBiz){
+        matchBox.innerHTML = "";
+
+        allBusinesses.forEach(b => {
+            if(b.type !== newBiz.type){
+                const match = document.createElement("div");
+                match.className = "matchCard";
+                match.innerHTML = `
+                    <b>${b.name}</b><br>
+                    ${b.type}
+                `;
+                matchBox.appendChild(match);
+            }
+        });
+
+        if(matchBox.innerHTML === ""){
+            matchBox.innerText = "No matches yet. Add more businesses.";
+        }
+    }
+
+    // CHAT
+    window.sendMessage = function(){
         push(ref(db,"messages"),{
-            user:localStorage.getItem("user"),
-            text:message.value
+            user: localStorage.getItem("user"),
+            text: message.value
         });
         message.value="";
     };
 
     onChildAdded(ref(db,"messages"), snap=>{
-        const d=snap.val();
-        const m=document.createElement("div");
+        const d = snap.val();
+        const m = document.createElement("div");
         m.className="msg";
-        m.innerHTML=`<b>${d.user}</b>: ${d.text}`;
+        m.innerHTML = `<b>${d.user}</b>: ${d.text}`;
         chat.appendChild(m);
-        chat.scrollTop=chat.scrollHeight;
+        chat.scrollTop = chat.scrollHeight;
     });
 
-    window.searchBusiness=function(){
-        const val=search.value.toLowerCase();
-        const cards=document.getElementsByClassName("businessCard");
+    // SEARCH
+    window.searchBusiness = function(){
+        const val = search.value.toLowerCase();
+        const cards = document.getElementsByClassName("businessCard");
 
         for(let c of cards){
-            c.style.display=c.innerText.toLowerCase().includes(val)?"block":"none";
+            c.style.display = c.innerText.toLowerCase().includes(val) ? "block" : "none";
         }
     };
     </script>
@@ -127,6 +137,8 @@
         .businessCard {background:white;padding:10px;border-radius:10px;}
         #chat {height:200px;overflow-y:auto;background:#fff;padding:10px;}
         .msg {background:#eee;margin:5px;padding:5px;border-radius:5px;}
+        #matchBox {display:flex;gap:10px;flex-wrap:wrap;}
+        .matchCard {background:#dff0ff;padding:10px;border-radius:8px;}
         .hidden {display:none;}
     </style>
 </head>
@@ -164,8 +176,8 @@
     <div id="businessList"></div>
 
     <div class="card">
-        <h3>🤖 AI Suggestions</h3>
-        <div id="aiBox">No suggestions yet</div>
+        <h3>🤝 Best Matches</h3>
+        <div id="matchBox">Add a business to see matches</div>
     </div>
 
     <div class="card">
