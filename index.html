@@ -31,6 +31,12 @@ window.login = function(){
     mainSection.classList.remove("hidden");
 };
 
+// LOGOUT
+window.logout = function(){
+    localStorage.removeItem("user");
+    location.reload();
+};
+
 window.onload = function(){
     currentUser = localStorage.getItem("user");
     if(currentUser){
@@ -152,14 +158,20 @@ window.searchBusiness=function(){
 
 <style>
 body{margin:0;font-family:Segoe UI;background:#eef2f7;}
-header{background:white;padding:15px;display:flex;justify-content:space-between;}
+header{
+    background:white;
+    padding:15px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
 .container{padding:20px;max-width:900px;margin:auto;}
 .card{background:white;padding:20px;border-radius:12px;margin-bottom:20px;}
 input{width:100%;padding:10px;margin:5px 0;}
-button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px;}
+button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px;cursor:pointer;}
 .businessCard,.matchCard{background:white;padding:10px;border-radius:10px;margin:5px;}
 #matchBox{display:flex;flex-wrap:wrap;}
-#chat,#privateChatBox{height:150px;overflow-y:auto;background:#fff;padding:10px;}
+#chat,#privateChatBox{height:150px;overflow-y:auto;background:#fff;padding:10px;border-radius:8px;}
 .hidden{display:none;}
 </style>
 </head>
@@ -168,7 +180,10 @@ button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px
 
 <header>
 <h2>Zoe Platform</h2>
+<div>
 <span>Business Network</span>
+<button onclick="logout()">Logout</button>
+</div>
 </header>
 
 <div id="loginSection" class="container">
