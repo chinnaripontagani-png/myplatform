@@ -5,7 +5,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, onChildAdded, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBjijQvDpWET8ijG1CJ2YXlJxq50Ds6RBY",
@@ -81,14 +81,14 @@ onChildAdded(ref(db,"businesses"), snap=>{
     div.onclick=function(){
         selectedUser = d.owner;
         chatSection.style.display = "block";
-        privateChatBox.innerHTML = "";
         chatTitle.innerText = "Chat with " + selectedUser;
+        loadMessages();
     };
 
     businessList.appendChild(div);
 });
 
-// SEND PRIVATE
+// SEND MESSAGE
 window.sendPrivate=function(){
     const msg=privateMsg.value;
 
@@ -100,31 +100,41 @@ window.sendPrivate=function(){
     push(ref(db,"privateChats"),{
         from:currentUser,
         to:selectedUser,
-        text:msg
+        text:msg,
+        time:Date.now()
     });
 
     privateMsg.value="";
 };
 
-// RECEIVE PRIVATE + POPUP
+// LOAD MESSAGES (IMPORTANT)
+function loadMessages(){
+    privateChatBox.innerHTML="";
+
+    onValue(ref(db,"privateChats"), snap=>{
+        privateChatBox.innerHTML="";
+
+        snap.forEach(child=>{
+            const d=child.val();
+
+            if(
+                (d.from===currentUser && d.to===selectedUser) ||
+                (d.from===selectedUser && d.to===currentUser)
+            ){
+                const m=document.createElement("div");
+                m.innerHTML=`<b>${d.from}</b>: ${d.text}`;
+                privateChatBox.appendChild(m);
+            }
+        });
+    });
+}
+
+// REAL POPUP NOTIFICATION
 onChildAdded(ref(db,"privateChats"), snap=>{
     const d=snap.val();
 
-    // If message belongs to current user
-    if(d.from === currentUser || d.to === currentUser){
-
-        // If chat is open with that user
-        if(selectedUser === d.from || selectedUser === d.to){
-            const m=document.createElement("div");
-            m.innerHTML=`<b>${d.from}</b>: ${d.text}`;
-            privateChatBox.appendChild(m);
-        }
-        else{
-            // 🔔 POPUP NOTIFICATION
-            if(d.to === currentUser){
-                alert("📩 New message from " + d.from);
-            }
-        }
+    if(d.to === currentUser && d.from !== selectedUser){
+        alert("📩 New message from " + d.from);
     }
 });
 
@@ -166,7 +176,6 @@ button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px
 <button onclick="logout()">Logout</button>
 </header>
 
-<!-- LOGIN -->
 <div id="loginSection" class="container">
 <div class="card">
 <h3>Login</h3>
@@ -176,7 +185,6 @@ button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px
 </div>
 </div>
 
-<!-- MAIN -->
 <div id="mainSection" class="container hidden">
 
 <div class="card">
@@ -192,7 +200,6 @@ button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px
 <div id="businessList"></div>
 </div>
 
-<!-- PRIVATE CHAT (HIDDEN UNTIL CLICK) -->
 <div id="chatSection" class="card">
 <h3 id="chatTitle">Private Chat</h3>
 <div id="privateChatBox"></div>
