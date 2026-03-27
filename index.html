@@ -75,13 +75,14 @@ onChildAdded(ref(db,"businesses"), snap=>{
 
     const div=document.createElement("div");
     div.className="businessCard";
-    div.id = "biz_" + d.owner;
 
     div.innerHTML=`<h4>${d.name}</h4><p>${d.owner}</p><p>${d.type}</p>`;
 
     div.onclick=function(){
         selectedUser = d.owner;
-        privateChatBox.innerHTML = "Chat with " + selectedUser;
+        chatSection.style.display = "block";
+        privateChatBox.innerHTML = "";
+        chatTitle.innerText = "Chat with " + selectedUser;
     };
 
     businessList.appendChild(div);
@@ -92,7 +93,7 @@ window.sendPrivate=function(){
     const msg=privateMsg.value;
 
     if(!selectedUser){
-        alert("Click a business first");
+        alert("Select a business first");
         return;
     }
 
@@ -105,25 +106,23 @@ window.sendPrivate=function(){
     privateMsg.value="";
 };
 
-// RECEIVE PRIVATE (FIXED + NOTIFICATION)
+// RECEIVE PRIVATE + POPUP
 onChildAdded(ref(db,"privateChats"), snap=>{
     const d=snap.val();
 
-    // Show message if belongs to this user
+    // If message belongs to current user
     if(d.from === currentUser || d.to === currentUser){
 
-        // If chat is open
+        // If chat is open with that user
         if(selectedUser === d.from || selectedUser === d.to){
             const m=document.createElement("div");
             m.innerHTML=`<b>${d.from}</b>: ${d.text}`;
             privateChatBox.appendChild(m);
         }
         else{
-            // 🔴 Notification
-            const targetUser = d.from === currentUser ? d.to : d.from;
-            const el = document.getElementById("biz_" + targetUser);
-            if(el){
-                el.style.border = "2px solid red";
+            // 🔔 POPUP NOTIFICATION
+            if(d.to === currentUser){
+                alert("📩 New message from " + d.from);
             }
         }
     }
@@ -144,16 +143,6 @@ onChildAdded(ref(db,"messages"), snap=>{
     m.innerHTML=`<b>${d.user}</b>: ${d.text}`;
     chat.appendChild(m);
 });
-
-// SEARCH
-window.searchBusiness=function(){
-    const val=search.value.toLowerCase();
-    const cards=document.getElementsByClassName("businessCard");
-
-    for(let c of cards){
-        c.style.display=c.innerText.toLowerCase().includes(val)?"block":"none";
-    }
-};
 </script>
 
 <style>
@@ -164,7 +153,8 @@ header{background:white;padding:15px;display:flex;justify-content:space-between;
 input{width:100%;padding:10px;margin:5px 0;}
 button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px;}
 .businessCard{background:white;padding:10px;border-radius:10px;margin:5px;cursor:pointer;}
-#chat,#privateChatBox{height:200px;overflow-y:auto;background:#fff;padding:10px;}
+#privateChatBox{height:200px;overflow-y:auto;background:#fff;padding:10px;}
+#chatSection{display:none;}
 .hidden{display:none;}
 </style>
 </head>
@@ -198,17 +188,13 @@ button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px
 </div>
 
 <div class="card">
-<h3>Search</h3>
-<input id="search" onkeyup="searchBusiness()" placeholder="Search...">
-</div>
-
-<div class="card">
-<h3>📋 All Businesses (Click to Chat)</h3>
+<h3>📋 Businesses (Click to Chat)</h3>
 <div id="businessList"></div>
 </div>
 
-<div class="card">
-<h3>🔒 Private Chat</h3>
+<!-- PRIVATE CHAT (HIDDEN UNTIL CLICK) -->
+<div id="chatSection" class="card">
+<h3 id="chatTitle">Private Chat</h3>
 <div id="privateChatBox"></div>
 <input id="privateMsg" placeholder="Type message">
 <button onclick="sendPrivate()">Send</button>
