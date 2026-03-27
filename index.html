@@ -10,8 +10,8 @@ import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebas
 const firebaseConfig = {
   apiKey: "AIzaSyBjijQvDpWET8ijG1CJ2YXlJxq50Ds6RBY",
   authDomain: "myplatform-30491.firebaseapp.com",
-  projectId: "myplatform-30491",
-  databaseURL: "https://myplatform-30491-default-rtdb.firebaseio.com"
+  databaseURL: "https://myplatform-30491-default-rtdb.firebaseio.com",
+  projectId: "myplatform-30491"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -20,63 +20,49 @@ const db = getDatabase(app);
 let currentUser = "";
 let selectedUser = "";
 let businesses = [];
+let messages = [];
 let notifications = {};
 
 // LOGIN
 window.login = function(){
-    const user = username.value;
-    const pass = password.value;
-
-    if(!user || !pass){
-        alert("Enter username & password");
+    currentUser = username.value;
+    if(!currentUser){
+        alert("Enter username");
         return;
     }
-
-    currentUser = user;
-    localStorage.setItem("user", user);
-
-    loginSection.style.display="none";
-    mainSection.classList.remove("hidden");
-};
-
-// LOGOUT
-window.logout = function(){
-    localStorage.removeItem("user");
+    localStorage.setItem("user", currentUser);
     location.reload();
 };
 
+// AUTO LOGIN
 window.onload = function(){
     currentUser = localStorage.getItem("user");
+
     if(currentUser){
         loginSection.style.display="none";
         mainSection.classList.remove("hidden");
     }
 };
 
+// LOGOUT
+window.logout = function(){
+    localStorage.clear();
+    location.reload();
+};
+
 // ADD BUSINESS
 window.addBusiness = function(){
-    const name=bname.value;
-    const owner=oname.value;
-    const type=btype.value;
-
-    if(!name||!owner||!type){
-        alert("Fill all fields");
-        return;
-    }
-
-    push(ref(db,"businesses"), {name,owner,type});
-
-    bname.value="";
-    oname.value="";
-    btype.value="";
+    push(ref(db,"businesses"),{
+        name:bname.value,
+        owner:oname.value,
+        type:btype.value
+    });
 };
 
 // LOAD BUSINESSES
 onValue(ref(db,"businesses"), snap=>{
-    businesses = [];
-    snap.forEach(child=>{
-        businesses.push(child.val());
-    });
+    businesses=[];
+    snap.forEach(c=>businesses.push(c.val()));
     renderBusinesses();
 });
 
@@ -86,11 +72,11 @@ function renderBusinesses(){
 
     businesses.forEach(b=>{
         const div=document.createElement("div");
-        div.className="businessCard";
 
         let notify = notifications[b.owner] ? " 🔴 New" : "";
 
-        div.innerHTML=`<h4>${b.name}${notify}</h4><p>${b.owner}</p><p>${b.type}</p>`;
+        div.innerHTML = `<b>${b.name}</b>${notify}<br>${b.owner}<br>${b.type}`;
+        div.className="businessCard";
 
         div.onclick=function(){
             selectedUser = b.owner;
@@ -99,22 +85,16 @@ function renderBusinesses(){
 
             notifications[selectedUser]=false;
             renderBusinesses();
-
-            loadMessages();
+            renderMessages();
         };
 
         businessList.appendChild(div);
     });
 }
 
-// SEND PRIVATE
-window.sendPrivate=function(){
-    const msg=privateMsg.value;
-
-    if(!selectedUser){
-        alert("Select a business first");
-        return;
-    }
+// SEND MESSAGE
+window.sendPrivate = function(){
+    const msg = privateMsg.value;
 
     push(ref(db,"privateChats"),{
         from:currentUser,
@@ -125,69 +105,51 @@ window.sendPrivate=function(){
     privateMsg.value="";
 };
 
-// LOAD CHAT
-function loadMessages(){
-    onValue(ref(db,"privateChats"), snap=>{
-        privateChatBox.innerHTML="";
-
-        snap.forEach(child=>{
-            const d=child.val();
-
-            if(
-                (d.from===currentUser && d.to===selectedUser) ||
-                (d.from===selectedUser && d.to===currentUser)
-            ){
-                const m=document.createElement("div");
-                m.innerHTML=`<b>${d.from}</b>: ${d.text}`;
-                privateChatBox.appendChild(m);
-            }
-        });
-    });
-}
-
-// 🔴 REAL-TIME NOTIFICATIONS (FINAL FIX)
+// 🔥 SINGLE GLOBAL LISTENER (FIX)
 onValue(ref(db,"privateChats"), snap=>{
-    snap.forEach(child=>{
-        const d = child.val();
+    messages=[];
 
-        if(d.to === currentUser && d.from !== selectedUser){
-            notifications[d.from] = true;
+    snap.forEach(c=>{
+        const d=c.val();
+        messages.push(d);
+
+        // NOTIFICATION
+        if(d.to===currentUser && d.from!==selectedUser){
+            notifications[d.from]=true;
         }
     });
 
     renderBusinesses();
+    renderMessages();
 });
 
-// GLOBAL CHAT
-window.sendMessage=function(){
-    push(ref(db,"messages"),{
-        user:currentUser,
-        text:message.value
-    });
-    message.value="";
-};
+// SHOW CHAT
+function renderMessages(){
+    privateChatBox.innerHTML="";
 
-onValue(ref(db,"messages"), snap=>{
-    chat.innerHTML="";
-    snap.forEach(child=>{
-        const d=child.val();
-        const m=document.createElement("div");
-        m.innerHTML=`<b>${d.user}</b>: ${d.text}`;
-        chat.appendChild(m);
+    messages.forEach(d=>{
+        if(
+            (d.from===currentUser && d.to===selectedUser) ||
+            (d.from===selectedUser && d.to===currentUser)
+        ){
+            const div=document.createElement("div");
+            div.innerHTML=`<b>${d.from}</b>: ${d.text}`;
+            privateChatBox.appendChild(div);
+        }
     });
-});
+}
+
 </script>
 
 <style>
-body{margin:0;font-family:Segoe UI;background:#eef2f7;}
-header{background:white;padding:15px;display:flex;justify-content:space-between;}
+body{font-family:Arial;background:#eef2f7;margin:0;}
+header{background:white;padding:10px;display:flex;justify-content:space-between;}
 .container{padding:20px;max-width:900px;margin:auto;}
-.card{background:white;padding:20px;border-radius:12px;margin-bottom:20px;}
+.card{background:white;padding:20px;margin:10px;border-radius:10px;}
 input{width:100%;padding:10px;margin:5px 0;}
-button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px;}
-.businessCard{background:white;padding:12px;border-radius:10px;margin:6px;cursor:pointer;}
-#privateChatBox{height:200px;overflow-y:auto;background:#fff;padding:10px;}
-#chatSection{display:none;}
+button{padding:10px;background:#007bff;color:white;border:none;border-radius:5px;}
+.businessCard{background:#fff;padding:10px;margin:5px;border-radius:8px;cursor:pointer;}
+#privateChatBox{height:200px;overflow-y:auto;background:#fafafa;padding:10px;}
 .hidden{display:none;}
 </style>
 </head>
@@ -199,17 +161,14 @@ button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px
 <button onclick="logout()">Logout</button>
 </header>
 
-<!-- LOGIN -->
 <div id="loginSection" class="container">
 <div class="card">
 <h3>Login</h3>
 <input id="username" placeholder="Username">
-<input id="password" type="password" placeholder="Password">
 <button onclick="login()">Login</button>
 </div>
 </div>
 
-<!-- MAIN -->
 <div id="mainSection" class="container hidden">
 
 <div class="card">
@@ -221,22 +180,15 @@ button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px
 </div>
 
 <div class="card">
-<h3>📋 Businesses (Click to Chat)</h3>
+<h3>Businesses</h3>
 <div id="businessList"></div>
 </div>
 
-<div id="chatSection" class="card">
-<h3 id="chatTitle">Private Chat</h3>
+<div id="chatSection" class="card" style="display:none;">
+<h3 id="chatTitle">Chat</h3>
 <div id="privateChatBox"></div>
 <input id="privateMsg" placeholder="Type message">
 <button onclick="sendPrivate()">Send</button>
-</div>
-
-<div class="card">
-<h3>🌍 Global Chat</h3>
-<div id="chat"></div>
-<input id="message" placeholder="Type message">
-<button onclick="sendMessage()">Send</button>
 </div>
 
 </div>
