@@ -69,12 +69,14 @@ window.addBusiness = function(){
     btype.value="";
 };
 
-// SHOW BUSINESSES (CLICK TO CHAT)
+// SHOW BUSINESSES
 onChildAdded(ref(db,"businesses"), snap=>{
     const d=snap.val();
 
     const div=document.createElement("div");
     div.className="businessCard";
+    div.id = "biz_" + d.owner;
+
     div.innerHTML=`<h4>${d.name}</h4><p>${d.owner}</p><p>${d.type}</p>`;
 
     div.onclick=function(){
@@ -103,19 +105,55 @@ window.sendPrivate=function(){
     privateMsg.value="";
 };
 
-// RECEIVE PRIVATE (ONLY 2 USERS)
+// RECEIVE PRIVATE (FIXED + NOTIFICATION)
 onChildAdded(ref(db,"privateChats"), snap=>{
     const d=snap.val();
 
-    if(
-        (d.from===currentUser && d.to===selectedUser) ||
-        (d.from===selectedUser && d.to===currentUser)
-    ){
-        const m=document.createElement("div");
-        m.innerHTML=`<b>${d.from}</b>: ${d.text}`;
-        privateChatBox.appendChild(m);
+    // Show message if belongs to this user
+    if(d.from === currentUser || d.to === currentUser){
+
+        // If chat is open
+        if(selectedUser === d.from || selectedUser === d.to){
+            const m=document.createElement("div");
+            m.innerHTML=`<b>${d.from}</b>: ${d.text}`;
+            privateChatBox.appendChild(m);
+        }
+        else{
+            // 🔴 Notification
+            const targetUser = d.from === currentUser ? d.to : d.from;
+            const el = document.getElementById("biz_" + targetUser);
+            if(el){
+                el.style.border = "2px solid red";
+            }
+        }
     }
 });
+
+// GLOBAL CHAT
+window.sendMessage=function(){
+    push(ref(db,"messages"),{
+        user:currentUser,
+        text:message.value
+    });
+    message.value="";
+};
+
+onChildAdded(ref(db,"messages"), snap=>{
+    const d=snap.val();
+    const m=document.createElement("div");
+    m.innerHTML=`<b>${d.user}</b>: ${d.text}`;
+    chat.appendChild(m);
+});
+
+// SEARCH
+window.searchBusiness=function(){
+    const val=search.value.toLowerCase();
+    const cards=document.getElementsByClassName("businessCard");
+
+    for(let c of cards){
+        c.style.display=c.innerText.toLowerCase().includes(val)?"block":"none";
+    }
+};
 </script>
 
 <style>
@@ -124,9 +162,9 @@ header{background:white;padding:15px;display:flex;justify-content:space-between;
 .container{padding:20px;max-width:900px;margin:auto;}
 .card{background:white;padding:20px;border-radius:12px;margin-bottom:20px;}
 input{width:100%;padding:10px;margin:5px 0;}
-button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px;cursor:pointer;}
+button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px;}
 .businessCard{background:white;padding:10px;border-radius:10px;margin:5px;cursor:pointer;}
-#privateChatBox{height:200px;overflow-y:auto;background:#fff;padding:10px;}
+#chat,#privateChatBox{height:200px;overflow-y:auto;background:#fff;padding:10px;}
 .hidden{display:none;}
 </style>
 </head>
@@ -160,6 +198,11 @@ button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px
 </div>
 
 <div class="card">
+<h3>Search</h3>
+<input id="search" onkeyup="searchBusiness()" placeholder="Search...">
+</div>
+
+<div class="card">
 <h3>📋 All Businesses (Click to Chat)</h3>
 <div id="businessList"></div>
 </div>
@@ -169,6 +212,13 @@ button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px
 <div id="privateChatBox"></div>
 <input id="privateMsg" placeholder="Type message">
 <button onclick="sendPrivate()">Send</button>
+</div>
+
+<div class="card">
+<h3>🌍 Global Chat</h3>
+<div id="chat"></div>
+<input id="message" placeholder="Type message">
+<button onclick="sendMessage()">Send</button>
 </div>
 
 </div>
