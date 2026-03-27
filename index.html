@@ -75,6 +75,7 @@ onChildAdded(ref(db,"businesses"), snap=>{
 
     const div=document.createElement("div");
     div.className="businessCard";
+    div.id="biz_"+d.owner;
 
     div.innerHTML=`<h4>${d.name}</h4><p>${d.owner}</p><p>${d.type}</p>`;
 
@@ -83,12 +84,16 @@ onChildAdded(ref(db,"businesses"), snap=>{
         chatSection.style.display = "block";
         chatTitle.innerText = "Chat with " + selectedUser;
         loadMessages();
+
+        // remove NEW badge
+        div.style.border="";
+        div.innerHTML=`<h4>${d.name}</h4><p>${d.owner}</p><p>${d.type}</p>`;
     };
 
     businessList.appendChild(div);
 });
 
-// SEND MESSAGE
+// SEND PRIVATE
 window.sendPrivate=function(){
     const msg=privateMsg.value;
 
@@ -100,14 +105,13 @@ window.sendPrivate=function(){
     push(ref(db,"privateChats"),{
         from:currentUser,
         to:selectedUser,
-        text:msg,
-        time:Date.now()
+        text:msg
     });
 
     privateMsg.value="";
 };
 
-// LOAD MESSAGES (IMPORTANT)
+// LOAD MESSAGES
 function loadMessages(){
     privateChatBox.innerHTML="";
 
@@ -129,12 +133,16 @@ function loadMessages(){
     });
 }
 
-// REAL POPUP NOTIFICATION
+// NOTIFICATION SYSTEM (NEW BADGE)
 onChildAdded(ref(db,"privateChats"), snap=>{
     const d=snap.val();
 
     if(d.to === currentUser && d.from !== selectedUser){
-        alert("📩 New message from " + d.from);
+        const el=document.getElementById("biz_"+d.from);
+        if(el){
+            el.style.border="2px solid red";
+            el.innerHTML += "<p style='color:red;'>New Message</p>";
+        }
     }
 });
 
