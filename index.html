@@ -5,7 +5,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBjijQvDpWET8ijG1CJ2YXlJxq50Ds6RBY",
@@ -19,6 +19,8 @@ const db = getDatabase(app);
 
 let currentUser = "";
 let selectedUser = "";
+let businesses = [];
+let notifications = {};
 
 // LOGIN
 window.login = function(){
@@ -69,29 +71,41 @@ window.addBusiness = function(){
     btype.value="";
 };
 
-// SHOW BUSINESSES
-onChildAdded(ref(db,"businesses"), snap=>{
-    const d=snap.val();
-
-    const div=document.createElement("div");
-    div.className="businessCard";
-    div.id="biz_"+d.owner;
-
-    div.innerHTML=`<h4>${d.name}</h4><p>${d.owner}</p><p>${d.type}</p>`;
-
-    div.onclick=function(){
-        selectedUser = d.owner;
-        chatSection.style.display = "block";
-        chatTitle.innerText = "Chat with " + selectedUser;
-        loadMessages();
-
-        // remove NEW badge
-        div.style.border="";
-        div.innerHTML=`<h4>${d.name}</h4><p>${d.owner}</p><p>${d.type}</p>`;
-    };
-
-    businessList.appendChild(div);
+// LOAD BUSINESSES
+onValue(ref(db,"businesses"), snap=>{
+    businesses = [];
+    snap.forEach(child=>{
+        businesses.push(child.val());
+    });
+    renderBusinesses();
 });
+
+// RENDER BUSINESSES
+function renderBusinesses(){
+    businessList.innerHTML="";
+
+    businesses.forEach(b=>{
+        const div=document.createElement("div");
+        div.className="businessCard";
+
+        let notify = notifications[b.owner] ? " 🔴 New" : "";
+
+        div.innerHTML=`<h4>${b.name}${notify}</h4><p>${b.owner}</p><p>${b.type}</p>`;
+
+        div.onclick=function(){
+            selectedUser = b.owner;
+            chatSection.style.display="block";
+            chatTitle.innerText="Chat with "+selectedUser;
+
+            notifications[selectedUser]=false;
+            renderBusinesses();
+
+            loadMessages();
+        };
+
+        businessList.appendChild(div);
+    });
+}
 
 // SEND PRIVATE
 window.sendPrivate=function(){
@@ -111,10 +125,8 @@ window.sendPrivate=function(){
     privateMsg.value="";
 };
 
-// LOAD MESSAGES
+// LOAD CHAT
 function loadMessages(){
-    privateChatBox.innerHTML="";
-
     onValue(ref(db,"privateChats"), snap=>{
         privateChatBox.innerHTML="";
 
@@ -133,17 +145,17 @@ function loadMessages(){
     });
 }
 
-// NOTIFICATION SYSTEM (NEW BADGE)
-onChildAdded(ref(db,"privateChats"), snap=>{
-    const d=snap.val();
+// 🔴 REAL-TIME NOTIFICATIONS (FINAL FIX)
+onValue(ref(db,"privateChats"), snap=>{
+    snap.forEach(child=>{
+        const d = child.val();
 
-    if(d.to === currentUser && d.from !== selectedUser){
-        const el=document.getElementById("biz_"+d.from);
-        if(el){
-            el.style.border="2px solid red";
-            el.innerHTML += "<p style='color:red;'>New Message</p>";
+        if(d.to === currentUser && d.from !== selectedUser){
+            notifications[d.from] = true;
         }
-    }
+    });
+
+    renderBusinesses();
 });
 
 // GLOBAL CHAT
@@ -155,11 +167,14 @@ window.sendMessage=function(){
     message.value="";
 };
 
-onChildAdded(ref(db,"messages"), snap=>{
-    const d=snap.val();
-    const m=document.createElement("div");
-    m.innerHTML=`<b>${d.user}</b>: ${d.text}`;
-    chat.appendChild(m);
+onValue(ref(db,"messages"), snap=>{
+    chat.innerHTML="";
+    snap.forEach(child=>{
+        const d=child.val();
+        const m=document.createElement("div");
+        m.innerHTML=`<b>${d.user}</b>: ${d.text}`;
+        chat.appendChild(m);
+    });
 });
 </script>
 
@@ -170,7 +185,7 @@ header{background:white;padding:15px;display:flex;justify-content:space-between;
 .card{background:white;padding:20px;border-radius:12px;margin-bottom:20px;}
 input{width:100%;padding:10px;margin:5px 0;}
 button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px;}
-.businessCard{background:white;padding:10px;border-radius:10px;margin:5px;cursor:pointer;}
+.businessCard{background:white;padding:12px;border-radius:10px;margin:6px;cursor:pointer;}
 #privateChatBox{height:200px;overflow-y:auto;background:#fff;padding:10px;}
 #chatSection{display:none;}
 .hidden{display:none;}
@@ -184,6 +199,7 @@ button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px
 <button onclick="logout()">Logout</button>
 </header>
 
+<!-- LOGIN -->
 <div id="loginSection" class="container">
 <div class="card">
 <h3>Login</h3>
@@ -193,6 +209,7 @@ button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px
 </div>
 </div>
 
+<!-- MAIN -->
 <div id="mainSection" class="container hidden">
 
 <div class="card">
