@@ -17,16 +17,22 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let allBusinesses = [];
-let selectedUser = "";
 let currentUser = "";
+let selectedUser = "";
 
 // LOGIN
 window.login = function(){
-    currentUser = username.value;
-    if(!currentUser) return alert("Enter username");
+    const user = username.value;
+    const pass = password.value;
 
-    localStorage.setItem("user", currentUser);
+    if(!user || !pass){
+        alert("Enter username & password");
+        return;
+    }
+
+    currentUser = user;
+    localStorage.setItem("user", user);
+
     loginSection.style.display="none";
     mainSection.classList.remove("hidden");
 };
@@ -56,53 +62,35 @@ window.addBusiness = function(){
         return;
     }
 
-    const newBiz={name,owner,type};
-    push(ref(db,"businesses"), newBiz);
-
-    showMatches(newBiz);
+    push(ref(db,"businesses"), {name,owner,type});
 
     bname.value="";
     oname.value="";
     btype.value="";
 };
 
-// DISPLAY BUSINESSES
+// SHOW BUSINESSES (CLICK TO CHAT)
 onChildAdded(ref(db,"businesses"), snap=>{
     const d=snap.val();
-    allBusinesses.push(d);
 
     const div=document.createElement("div");
     div.className="businessCard";
     div.innerHTML=`<h4>${d.name}</h4><p>${d.owner}</p><p>${d.type}</p>`;
+
+    div.onclick=function(){
+        selectedUser = d.owner;
+        privateChatBox.innerHTML = "Chat with " + selectedUser;
+    };
+
     businessList.appendChild(div);
 });
-
-// MATCHES
-function showMatches(newBiz){
-    matchBox.innerHTML="";
-
-    allBusinesses.forEach(b=>{
-        if(b.type!==newBiz.type){
-            const match=document.createElement("div");
-            match.className="matchCard";
-            match.innerHTML=`<b>${b.name}</b><br>${b.owner}<br>${b.type}`;
-
-            match.onclick=function(){
-                selectedUser=b.owner;
-                privateChatBox.innerHTML="Chat with "+selectedUser;
-            };
-
-            matchBox.appendChild(match);
-        }
-    });
-}
 
 // SEND PRIVATE
 window.sendPrivate=function(){
     const msg=privateMsg.value;
 
     if(!selectedUser){
-        alert("Select a match first");
+        alert("Click a business first");
         return;
     }
 
@@ -115,7 +103,7 @@ window.sendPrivate=function(){
     privateMsg.value="";
 };
 
-// RECEIVE PRIVATE (FIXED)
+// RECEIVE PRIVATE (ONLY 2 USERS)
 onChildAdded(ref(db,"privateChats"), snap=>{
     const d=snap.val();
 
@@ -128,50 +116,17 @@ onChildAdded(ref(db,"privateChats"), snap=>{
         privateChatBox.appendChild(m);
     }
 });
-
-// GLOBAL CHAT
-window.sendMessage=function(){
-    push(ref(db,"messages"),{
-        user:currentUser,
-        text:message.value
-    });
-    message.value="";
-};
-
-onChildAdded(ref(db,"messages"), snap=>{
-    const d=snap.val();
-    const m=document.createElement("div");
-    m.innerHTML=`<b>${d.user}</b>: ${d.text}`;
-    chat.appendChild(m);
-});
-
-// SEARCH
-window.searchBusiness=function(){
-    const val=search.value.toLowerCase();
-    const cards=document.getElementsByClassName("businessCard");
-
-    for(let c of cards){
-        c.style.display=c.innerText.toLowerCase().includes(val)?"block":"none";
-    }
-};
 </script>
 
 <style>
 body{margin:0;font-family:Segoe UI;background:#eef2f7;}
-header{
-    background:white;
-    padding:15px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
+header{background:white;padding:15px;display:flex;justify-content:space-between;}
 .container{padding:20px;max-width:900px;margin:auto;}
 .card{background:white;padding:20px;border-radius:12px;margin-bottom:20px;}
 input{width:100%;padding:10px;margin:5px 0;}
 button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px;cursor:pointer;}
-.businessCard,.matchCard{background:white;padding:10px;border-radius:10px;margin:5px;}
-#matchBox{display:flex;flex-wrap:wrap;}
-#chat,#privateChatBox{height:150px;overflow-y:auto;background:#fff;padding:10px;border-radius:8px;}
+.businessCard{background:white;padding:10px;border-radius:10px;margin:5px;cursor:pointer;}
+#privateChatBox{height:200px;overflow-y:auto;background:#fff;padding:10px;}
 .hidden{display:none;}
 </style>
 </head>
@@ -180,20 +135,20 @@ button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px
 
 <header>
 <h2>Zoe Platform</h2>
-<div>
-<span>Business Network</span>
 <button onclick="logout()">Logout</button>
-</div>
 </header>
 
+<!-- LOGIN -->
 <div id="loginSection" class="container">
 <div class="card">
 <h3>Login</h3>
-<input id="username" placeholder="Enter username">
-<button onclick="login()">Enter</button>
+<input id="username" placeholder="Username">
+<input id="password" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
 </div>
 </div>
 
+<!-- MAIN -->
 <div id="mainSection" class="container hidden">
 
 <div class="card">
@@ -205,29 +160,15 @@ button{padding:10px;background:#0a7cff;color:white;border:none;border-radius:5px
 </div>
 
 <div class="card">
-<h3>Search</h3>
-<input id="search" onkeyup="searchBusiness()" placeholder="Search...">
-</div>
-
+<h3>📋 All Businesses (Click to Chat)</h3>
 <div id="businessList"></div>
-
-<div class="card">
-<h3>🤝 Matches (Click to chat)</h3>
-<div id="matchBox"></div>
 </div>
 
 <div class="card">
 <h3>🔒 Private Chat</h3>
 <div id="privateChatBox"></div>
-<input id="privateMsg" placeholder="Type private message">
+<input id="privateMsg" placeholder="Type message">
 <button onclick="sendPrivate()">Send</button>
-</div>
-
-<div class="card">
-<h3>🌍 Global Chat</h3>
-<div id="chat"></div>
-<input id="message" placeholder="Type message">
-<button onclick="sendMessage()">Send</button>
 </div>
 
 </div>
